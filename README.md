@@ -6,7 +6,7 @@ The project demonstrates a complete machine learning workflow, including synthet
 
 ## 🌐 Live Demo
 
-👉 **[Open the Live Streamlit Dashboard](https://vehicle-predictive-maintenance-5atsdz7bjz5asnaujag6.streamlit.app/)**
+👉 **[Open the Live Streamlit Dashboard](https://vehicle-predictive-maintenance-5atsdzc7bjz5asnaujag6f.streamlit.app/)**
 
 ## 📌 Project Overview
 
