@@ -12,63 +12,114 @@ from sklearn.metrics import (
     recall_score,
     f1_score,
     roc_auc_score,
-    classification_report
+    confusion_matrix
 )
 
-# -----------------------------
-# 1. Load Dataset
-# -----------------------------
 
-df = pd.read_csv("data/vehicle_telemetry.csv")
+# --------------------------------------------------
+# Load Dataset
+# --------------------------------------------------
 
-print("Dataset loaded successfully!")
-print(f"Dataset shape: {df.shape}")
+data = pd.read_csv("data/vehicle_telemetry.csv")
 
-# -----------------------------
-# 2. Separate Features & Target
-# -----------------------------
+print("\nDataset Shape:", data.shape)
 
-X = df.drop("maintenance_required", axis=1)
-y = df["maintenance_required"]
+print("\nTarget Distribution:")
+print(data["maintenance_required"].value_counts())
 
-# -----------------------------
-# 3. Train-Test Split
-# -----------------------------
+
+# --------------------------------------------------
+# Features and Target
+# --------------------------------------------------
+
+X = data.drop("maintenance_required", axis=1)
+y = data["maintenance_required"]
+
+
+# --------------------------------------------------
+# Train-Test Split
+# --------------------------------------------------
 
 X_train, X_test, y_train, y_test = train_test_split(
     X,
     y,
-    test_size=0.2,
+    test_size=0.20,
     random_state=42,
     stratify=y
 )
 
-print(f"\nTraining samples: {len(X_train)}")
-print(f"Testing samples: {len(X_test)}")
 
-# -----------------------------
-# 4. Logistic Regression
-# -----------------------------
+# --------------------------------------------------
+# Logistic Regression
+# --------------------------------------------------
 
 logistic_model = Pipeline([
     ("scaler", StandardScaler()),
-    ("model", LogisticRegression(
-        class_weight="balanced",
-        random_state=42,
-        max_iter=1000
-    ))
+    (
+        "classifier",
+        LogisticRegression(
+            class_weight="balanced",
+            random_state=42,
+            max_iter=1000
+        )
+    )
 ])
 
 logistic_model.fit(X_train, y_train)
 
-logistic_pred = logistic_model.predict(X_test)
-logistic_prob = logistic_model.predict_proba(X_test)[:, 1]
+logistic_predictions = logistic_model.predict(X_test)
+logistic_probabilities = logistic_model.predict_proba(X_test)[:, 1]
 
-# -----------------------------
-# 5. Random Forest
-# -----------------------------
 
-random_forest = RandomForestClassifier(
+logistic_accuracy = accuracy_score(
+    y_test,
+    logistic_predictions
+)
+
+logistic_precision = precision_score(
+    y_test,
+    logistic_predictions,
+    zero_division=0
+)
+
+logistic_recall = recall_score(
+    y_test,
+    logistic_predictions,
+    zero_division=0
+)
+
+logistic_f1 = f1_score(
+    y_test,
+    logistic_predictions,
+    zero_division=0
+)
+
+logistic_roc_auc = roc_auc_score(
+    y_test,
+    logistic_probabilities
+)
+
+
+# --------------------------------------------------
+# Logistic Regression Results
+# --------------------------------------------------
+
+print("\n" + "=" * 50)
+print("LOGISTIC REGRESSION")
+print("=" * 50)
+
+print(f"Accuracy  : {logistic_accuracy:.4f}")
+print(f"Precision : {logistic_precision:.4f}")
+print(f"Recall    : {logistic_recall:.4f}")
+print(f"F1 Score  : {logistic_f1:.4f}")
+print(f"ROC-AUC   : {logistic_roc_auc:.4f}")
+
+
+# --------------------------------------------------
+# Random Forest
+# --------------------------------------------------
+
+random_forest_model = RandomForestClassifier(
     n_estimators=200,
     max_depth=12,
     class_weight="balanced",
@@ -76,61 +127,143 @@ random_forest = RandomForestClassifier(
     n_jobs=-1
 )
 
-random_forest.fit(X_train, y_train)
+random_forest_model.fit(X_train, y_train)
 
-rf_pred = random_forest.predict(X_test)
-rf_prob = random_forest.predict_proba(X_test)[:, 1]
-
-# -----------------------------
-# 6. Evaluation Function
-# -----------------------------
-
-def evaluate_model(name, y_true, predictions, probabilities):
-
-    print("\n" + "=" * 50)
-    print(name)
-    print("=" * 50)
-
-    print(f"Accuracy : {accuracy_score(y_true, predictions):.4f}")
-    print(f"Precision: {precision_score(y_true, predictions):.4f}")
-    print(f"Recall   : {recall_score(y_true, predictions):.4f}")
-    print(f"F1 Score : {f1_score(y_true, predictions):.4f}")
-    print(f"ROC-AUC  : {roc_auc_score(y_true, probabilities):.4f}")
-
-    print("\nClassification Report:")
-    print(classification_report(y_true, predictions))
+rf_predictions = random_forest_model.predict(X_test)
+rf_probabilities = random_forest_model.predict_proba(X_test)[:, 1]
 
 
-# -----------------------------
-# 7. Evaluate Both Models
-# -----------------------------
-
-evaluate_model(
-    "Logistic Regression",
+rf_accuracy = accuracy_score(
     y_test,
-    logistic_pred,
-    logistic_prob
+    rf_predictions
 )
 
-evaluate_model(
-    "Random Forest",
+rf_precision = precision_score(
     y_test,
-    rf_pred,
-    rf_prob
+    rf_predictions,
+    zero_division=0
 )
 
-# -----------------------------
-# 8. Save Random Forest Model
-# -----------------------------
+rf_recall = recall_score(
+    y_test,
+    rf_predictions,
+    zero_division=0
+)
+
+rf_f1 = f1_score(
+    y_test,
+    rf_predictions,
+    zero_division=0
+)
+
+rf_roc_auc = roc_auc_score(
+    y_test,
+    rf_probabilities
+)
+
+
+# --------------------------------------------------
+# Random Forest Results
+# --------------------------------------------------
+
+print("\n" + "=" * 50)
+print("RANDOM FOREST")
+print("=" * 50)
+
+print(f"Accuracy  : {rf_accuracy:.4f}")
+print(f"Precision : {rf_precision:.4f}")
+print(f"Recall    : {rf_recall:.4f}")
+print(f"F1 Score  : {rf_f1:.4f}")
+print(f"ROC-AUC   : {rf_roc_auc:.4f}")
+
+
+# --------------------------------------------------
+# Confusion Matrix
+# --------------------------------------------------
+
+rf_confusion_matrix = confusion_matrix(
+    y_test,
+    rf_predictions
+)
+
+print("\nRandom Forest Confusion Matrix:")
+print(rf_confusion_matrix)
+
+
+# --------------------------------------------------
+# Save Random Forest Model
+# --------------------------------------------------
 
 joblib.dump(
-    random_forest,
+    random_forest_model,
     "models/vehicle_failure_model.pkl"
 )
 
+print(
+    "\nRandom Forest model saved to "
+    "models/vehicle_failure_model.pkl"
+)
+
+
+# --------------------------------------------------
+# Save Model Evaluation Results
+# --------------------------------------------------
+
+model_metrics = {
+    "model": "Random Forest",
+
+    "accuracy": rf_accuracy,
+    "precision": rf_precision,
+    "recall": rf_recall,
+    "f1_score": rf_f1,
+    "roc_auc": rf_roc_auc,
+
+    "confusion_matrix": rf_confusion_matrix.tolist(),
+
+    "test_samples": len(y_test),
+    "features": list(X.columns)
+}
+
+
+joblib.dump(
+    model_metrics,
+    "models/model_metrics.pkl"
+)
+
+print(
+    "Model evaluation results saved to "
+    "models/model_metrics.pkl"
+)
+
+
+# --------------------------------------------------
+# Final Summary
+# --------------------------------------------------
+
 print("\n" + "=" * 50)
-print("MODEL SAVED SUCCESSFULLY!")
+print("TRAINING COMPLETE")
 print("=" * 50)
 
-print("Location:")
-print("models/vehicle_failure_model.pkl")
+print(
+    f"Random Forest Accuracy : {rf_accuracy * 100:.2f}%"
+)
+
+print(
+    f"Random Forest F1 Score : {rf_f1 * 100:.2f}%"
+)
+
+print(
+    f"Random Forest ROC-AUC  : {rf_roc_auc * 100:.2f}%"
+)
+
+print(
+    "\nFiles created:"
+)
+
+print(
+    "1. models/vehicle_failure_model.pkl"
+)
+
+print(
+    "2. models/model_metrics.pkl"
+)
