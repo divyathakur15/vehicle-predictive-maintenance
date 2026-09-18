@@ -1,5 +1,6 @@
 import pandas as pd
 import joblib
+from datetime import datetime, timezone
 
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
@@ -12,6 +13,7 @@ from sklearn.metrics import (
     recall_score,
     f1_score,
     roc_auc_score,
+    roc_curve,
     confusion_matrix
 )
 
@@ -71,33 +73,11 @@ logistic_predictions = logistic_model.predict(X_test)
 logistic_probabilities = logistic_model.predict_proba(X_test)[:, 1]
 
 
-logistic_accuracy = accuracy_score(
-    y_test,
-    logistic_predictions
-)
-
-logistic_precision = precision_score(
-    y_test,
-    logistic_predictions,
-    zero_division=0
-)
-
-logistic_recall = recall_score(
-    y_test,
-    logistic_predictions,
-    zero_division=0
-)
-
-logistic_f1 = f1_score(
-    y_test,
-    logistic_predictions,
-    zero_division=0
-)
-
-logistic_roc_auc = roc_auc_score(
-    y_test,
-    logistic_probabilities
-)
+logistic_accuracy = accuracy_score(y_test, logistic_predictions)
+logistic_precision = precision_score(y_test, logistic_predictions, zero_division=0)
+logistic_recall = recall_score(y_test, logistic_predictions, zero_division=0)
+logistic_f1 = f1_score(y_test, logistic_predictions, zero_division=0)
+logistic_roc_auc = roc_auc_score(y_test, logistic_probabilities)
 
 
 # --------------------------------------------------
@@ -133,33 +113,11 @@ rf_predictions = random_forest_model.predict(X_test)
 rf_probabilities = random_forest_model.predict_proba(X_test)[:, 1]
 
 
-rf_accuracy = accuracy_score(
-    y_test,
-    rf_predictions
-)
-
-rf_precision = precision_score(
-    y_test,
-    rf_predictions,
-    zero_division=0
-)
-
-rf_recall = recall_score(
-    y_test,
-    rf_predictions,
-    zero_division=0
-)
-
-rf_f1 = f1_score(
-    y_test,
-    rf_predictions,
-    zero_division=0
-)
-
-rf_roc_auc = roc_auc_score(
-    y_test,
-    rf_probabilities
-)
+rf_accuracy = accuracy_score(y_test, rf_predictions)
+rf_precision = precision_score(y_test, rf_predictions, zero_division=0)
+rf_recall = recall_score(y_test, rf_predictions, zero_division=0)
+rf_f1 = f1_score(y_test, rf_predictions, zero_division=0)
+rf_roc_auc = roc_auc_score(y_test, rf_probabilities)
 
 
 # --------------------------------------------------
@@ -181,13 +139,25 @@ print(f"ROC-AUC   : {rf_roc_auc:.4f}")
 # Confusion Matrix
 # --------------------------------------------------
 
-rf_confusion_matrix = confusion_matrix(
-    y_test,
-    rf_predictions
-)
+rf_confusion_matrix = confusion_matrix(y_test, rf_predictions)
 
 print("\nRandom Forest Confusion Matrix:")
 print(rf_confusion_matrix)
+
+
+# --------------------------------------------------
+# ROC Curve (for the dashboard's ROC chart)
+# --------------------------------------------------
+
+fpr, tpr, _ = roc_curve(y_test, rf_probabilities)
+
+# Downsample to ~100 points so the .pkl stays small and the chart stays smooth
+if len(fpr) > 100:
+    step = len(fpr) // 100
+    fpr = fpr[::step]
+    tpr = tpr[::step]
+
+print(f"\nROC curve points captured: {len(fpr)}")
 
 
 # --------------------------------------------------
@@ -199,10 +169,7 @@ joblib.dump(
     "models/vehicle_failure_model.pkl"
 )
 
-print(
-    "\nRandom Forest model saved to "
-    "models/vehicle_failure_model.pkl"
-)
+print("\nRandom Forest model saved to models/vehicle_failure_model.pkl")
 
 
 # --------------------------------------------------
@@ -220,8 +187,14 @@ model_metrics = {
 
     "confusion_matrix": rf_confusion_matrix.tolist(),
 
+    "roc_curve": {
+        "fpr": fpr.tolist(),
+        "tpr": tpr.tolist()
+    },
+
     "test_samples": len(y_test),
-    "features": list(X.columns)
+    "features": list(X.columns),
+    "trained_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 }
 
 
@@ -230,10 +203,7 @@ joblib.dump(
     "models/model_metrics.pkl"
 )
 
-print(
-    "Model evaluation results saved to "
-    "models/model_metrics.pkl"
-)
+print("Model evaluation results saved to models/model_metrics.pkl")
 
 
 # --------------------------------------------------
@@ -244,26 +214,10 @@ print("\n" + "=" * 50)
 print("TRAINING COMPLETE")
 print("=" * 50)
 
-print(
-    f"Random Forest Accuracy : {rf_accuracy * 100:.2f}%"
-)
+print(f"Random Forest Accuracy : {rf_accuracy * 100:.2f}%")
+print(f"Random Forest F1 Score : {rf_f1 * 100:.2f}%")
+print(f"Random Forest ROC-AUC  : {rf_roc_auc * 100:.2f}%")
 
-print(
-    f"Random Forest F1 Score : {rf_f1 * 100:.2f}%"
-)
-
-print(
-    f"Random Forest ROC-AUC  : {rf_roc_auc * 100:.2f}%"
-)
-
-print(
-    "\nFiles created:"
-)
-
-print(
-    "1. models/vehicle_failure_model.pkl"
-)
-
-print(
-    "2. models/model_metrics.pkl"
-)
+print("\nFiles created:")
+print("1. models/vehicle_failure_model.pkl")
+print("2. models/model_metrics.pkl")
